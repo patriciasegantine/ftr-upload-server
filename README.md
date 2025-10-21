@@ -1,6 +1,15 @@
 # Upload Widget Server
 
-A Node.js server developed as part of a postgraduate backend course, focusing on building a robust and scalable file upload system using **Cloudflare R2** as an alternative to **Amazon S3**.
+A Node.js server developed as part of a **postgraduate course in Full Stack Development**, focusing on building a robust and scalable file upload system using **Cloudflare R2** as an alternative to **Amazon S3**.
+
+## 🎓 Academic Project
+
+This project was developed during a postgraduate course in backend development, with emphasis on:
+
+- Advanced backend architecture patterns
+- Cloud storage integration strategies
+- Modern Node.js and TypeScript best practices
+- Production-ready development workflows
 
 ## 🚀 Overview
 
@@ -29,6 +38,8 @@ This project does not focus on CRUD operations, assuming prior knowledge of them
 ---
 
 ## ⚙️ Getting Started
+
+### 1. Clone the repository
 
 ### 1. Clone the repository
 ```bash
