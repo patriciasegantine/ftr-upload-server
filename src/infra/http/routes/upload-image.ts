@@ -1,8 +1,26 @@
 import {FastifyPluginAsyncZod} from "fastify-type-provider-zod";
 import {FastifyInstance} from "fastify";
+import {z} from "zod";
 
 export const uploadImageRoute: FastifyPluginAsyncZod = async (server: FastifyInstance) => {
-    server.get('/uploads', () => {
-        return 'Hello Word!'
-    })
+    server.post('/uploads',
+        {
+            schema: {
+                summary: 'Upload an image',
+                body: z.object({
+                    name: z.string(),
+                    password: z.string().optional(),
+                }),
+                response: {
+                    201: z.object({ uploadId: z.string() }),
+                    409: z
+                        .object({ message: z.string() })
+                        .describe('Upload already exists.'),
+                },
+            },
+        },
+        async (request, reply) => {
+            return reply.status(201).send({ uploadId: '123' })
+        }
+    )
 }
