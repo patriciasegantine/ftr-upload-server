@@ -3,8 +3,7 @@ import {FastifyInstance} from "fastify";
 import {z} from "zod";
 
 export const uploadImageRoute: FastifyPluginAsyncZod = async (server: FastifyInstance) => {
-    server.post('/uploads',
-        {
+    server.post('/uploads', {
             schema: {
                 summary: 'Upload an image',
                 body: z.object({
