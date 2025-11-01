@@ -9,7 +9,7 @@
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/patriciasegantine/ftr-upload-server.git"
+    "url": "https://github.com/patriciasegantine/ftr-upload-server.git"
   },
   "scripts": {
     "dev": "tsx watch --env-file .env src/infra/http/server.ts",
@@ -20,13 +20,17 @@
     "db:studio": "drizzle-kit studio",
     "db:migrate:test": "dotenv -e .env.test -- drizzle-kit migrate",
     "pretest": "npm run db:migrate:test",
-    "pretest:watch": "npm run db:migrate:test"
-  },
+    "pretest:watch": "npm run db:migrate:test",
+    "build": "tsdown",
+    "start": "node dist/infra/http/server.js",
+    "start-dev": "node --env-file .env dist/infra/http/server.js"
+},
   "devDependencies": {
     "@faker-js/faker": "^10.1.0",
     "@types/node": "^22.10.2",
     "dotenv-cli": "^11.0.0",
     "drizzle-kit": "^0.31.6",
+    "tsdown": "^0.15.12",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vite-tsconfig-paths": "^5.1.4",
