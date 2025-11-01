@@ -1,9 +1,9 @@
 import {randomUUID} from 'node:crypto'
-import {exportUploads} from '@/app/functions/export-uploads'
 import {isRight, unwrapEither} from '@/infra/shared/either'
 import * as upload from '@/infra/storage/upload-file-to-storage'
 import {makeUpload} from '@/test/factories/make-upload'
 import {describe, expect, it, vi} from 'vitest'
+import {exportUploads} from "@/app/functions/export-uploads/export-uploads";
 
 describe('export uploads', () => {
     it('should be able to export uploads', async () => {
