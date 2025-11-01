@@ -1,4 +1,4 @@
-import {uploadImage} from '@/app/functions/upload-image'
+import {uploadImage} from '@/app/functions/upload-image/upload-image'
 import {isRight, unwrapEither} from '@/infra/shared/either'
 import type {FastifyPluginAsyncZod} from 'fastify-type-provider-zod'
 import {z} from 'zod'

@@ -1,5 +1,5 @@
 import {randomUUID} from 'node:crypto'
-import {getUploads} from '@/app/functions/get-uploads'
+import {getUploads} from '@/app/functions/get-uploads/get-uploads'
 import {isRight, unwrapEither} from '@/infra/shared/either'
 import {makeUpload} from '@/test/factories/make-upload'
 import dayjs from 'dayjs'
