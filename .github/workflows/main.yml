@@ -1,7 +1,7 @@
 name: widget-server pipe
 on:
   push:
-    branches: [ github-workflows ]
+    branches: [ feat/github-workflows ]
 
 # [x] - aws configure - credential config
 # [ ] - aws ecr - ecr login
