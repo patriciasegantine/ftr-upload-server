@@ -1,7 +1,7 @@
 name: widget-server pipe ECR
 on:
   push:
-    branches: [ feat/github-workflows ]
+    branches: [ feat/dockerhub-workflows]
 
 jobs:
   build:
