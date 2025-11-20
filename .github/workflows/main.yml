@@ -6,8 +6,8 @@ on:
 # [x] - aws configure - credential config
 # [x] - aws ecr - ecr login
 # [ ] - image build
-# [ ] - image tag
-# [ ] - image push
+# [x] - image tag
+# [x] - image push
 
 jobs:
   build:
