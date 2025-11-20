@@ -1,7 +1,7 @@
 name: widget-server pipe DockerHub
 on:
   push:
-    branches: [ feat/github-workflows ]
+    branches: [ feat/dockerhub-workflows ]
 
 jobs:
   build:
