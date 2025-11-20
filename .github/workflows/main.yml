@@ -1,8 +1,7 @@
 name: widget-server pipe ECR
 on:
   push:
-    branches:
-      - main
+    branches: [ feat/dockerhub-workflows ]
 
 jobs:
   build:
@@ -32,13 +31,21 @@ jobs:
           echo "sha=$SHA" >> $GITHUB_OUTPUT
 
       - name: Build and push image to AWS ECR
-        id: build-push-image
-        env:
-          ECR_REGISTRY: ${{steps.login-ecr.outputs.registry}}
-          ECR_REPOSITORY: ${{vars.ECR_REPOSITORY}}
-          IMAGE_TAG: ${{steps.generate-tag.outputs.sha}}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{steps.login-ecr.outputs.registry}}/${{vars.ECR_REPOSITORY}}:${{ steps.generate-tag.outputs.sha}}
 
-        run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+#      - name: Build and push image to AWS ECR
+#        id: build-push-image
+#        env:
+#          ECR_REGISTRY: ${{steps.login-ecr.outputs.registry}}
+#          ECR_REPOSITORY: ${{vars.ECR_REPOSITORY}}
+#          IMAGE_TAG: ${{steps.generate-tag.outputs.sha}}
+#
+#        run: |
+#          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+#          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
