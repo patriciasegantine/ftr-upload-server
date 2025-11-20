@@ -3,12 +3,6 @@ on:
   push:
     branches: [ feat/github-workflows ]
 
-# [x] - aws configure - credential config
-# [x] - aws ecr - ecr login
-# [ ] - image build
-# [x] - image tag
-# [x] - image push
-
 jobs:
   build:
     name: Build
@@ -46,8 +40,4 @@ jobs:
         run: |
           docker build -t $ECR_REGISTER/ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTER/ECR_REPOSITORY:$IMAGE_TAG
-
-
-
-
 
