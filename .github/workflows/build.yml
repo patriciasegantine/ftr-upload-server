@@ -1,0 +1,81 @@
+name: Build and Push Image
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  # ============================
+  # BUILD & PUSH TO AWS ECR
+  # ============================
+  build-and-push:
+    name: Build & Push Docker Image to ECR
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout project code
+      - name: Checkout repository
+        id: checkout_repo
+        uses: actions/checkout@v4
+
+      # Validate that repo name variable exists
+      - name: Check required ECR variables
+        id: check_ecr_var
+        run: |
+          if [ -z "${{ vars.ECR_REPOSITORY }}" ]; then
+            echo "ECR_REPOSITORY variable is not set."
+            exit 1
+          fi
+
+      # Configure AWS credentials to allow ECR access
+      - name: Configure AWS Credentials
+        id: configure_aws
+        uses: aws-actions/configure-aws-credentials@v5.1.0
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      # Authenticate Docker with ECR
+      - name: Login to AWS ECR
+        id: login_ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Generate a short version of commit SHA for tagging images
+      - name: Generate image tag (short SHA)
+        id: generate_tag
+        run: |
+          SHA=$(echo $GITHUB_SHA | head -c7)
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
+
+      # Build test image for Trivy scanning
+      - name: Build image for Trivy vulnerability scan
+        id: build_trivy_image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: |
+            ${{ steps.login_ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:testing
+
+      # Run Trivy scan on the testing image
+      - name: Run Trivy vulnerability scanner
+        id: trivy_scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.login_ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:testing
+          format: table
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: "CRITICAL,HIGH"
+
+        # Build and push final image to ECR
+      - name: Build and push final production image to ECR
+        id: build_and_push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.login_ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ steps.generate_tag.outputs.sha }}
