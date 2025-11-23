@@ -1,17 +1,17 @@
-# ----- Base image -----
+# Base image
 FROM node:20.18 AS base
 
 # Keep npm version consistent
 RUN npm i -g npm
 
-# ----- Dependencies installation -----
+# Dependencies installation
 FROM base AS dependencies
 WORKDIR /usr/src/app
 
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# ----- Build stage -----
+# Build stage
 FROM base AS build
 WORKDIR /usr/src/app
 
@@ -21,7 +21,7 @@ COPY --from=dependencies /usr/src/app/node_modules ./node_modules
 RUN npm run build
 RUN npm prune --prod
 
-# ----- Production image -----
+# Production image
 FROM gcr.io/distroless/nodejs20-debian12 AS deploy
 
 USER 1000

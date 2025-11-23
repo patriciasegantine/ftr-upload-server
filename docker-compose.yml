@@ -1,11 +1,9 @@
 services:
-  pg:
-    image: bitnami/postgresql:latest
+  app:
+    build: .
+    container_name: widget-server
     ports:
-      - '5432:5432'
-    environment:
-      - POSTGRES_USER=docker
-      - POSTGRES_PASSWORD=docker
-      - POSTGRES_DB=upload
-    volumes:
-      - './docker:/docker-entrypoint-initdb.d'
+      - '3000:3333'
+    env_file:
+      - .env
+  
