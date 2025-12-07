@@ -9,6 +9,7 @@ import fastifySwaggerUi from "@fastify/swagger-ui";
 import {transformSwaggerSchema} from "@/infra/http/transform-swagger-schema";
 import {getUploadsRoute} from "@/infra/http/routes/get-uploads";
 import {exportUploadsRoute} from "@/infra/http/routes/export-uploads";
+import {healthCheckRoute} from "@/infra/http/routes/heath-check";
 
 const server = fastify()
 
@@ -47,6 +48,7 @@ server.register(fastifySwaggerUi, {
     routePrefix: '/docs',
 })
 
+server.register(healthCheckRoute)
 server.register(uploadImageRoute)
 server.register(getUploadsRoute)
 server.register(exportUploadsRoute)

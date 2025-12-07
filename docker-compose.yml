@@ -24,7 +24,7 @@ services:
     restart: unless-stopped
     container_name: widget-server
     ports:
-      - '3000:${PORT}'
+      - '3000:3333'
     environment:
       - CLOUDFLARE_ACCOUNT_ID
       - CLOUDFLARE_ACCESS_KEY_ID
