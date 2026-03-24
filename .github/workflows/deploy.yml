@@ -1,0 +1,167 @@
+name: Build, Scan & Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  tests:
+    name: Run tests 🧪
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:13
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: docker
+          POSTGRES_PASSWORD: docker
+          POSTGRES_DB: postgres-widget-db-test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Tests status
+        run: echo "Tests passed successfully ✅"
+
+
+  build-and-publish:
+    name: Build, Scan & Publish Images 📦
+    runs-on: ubuntu-latest
+    needs: tests
+    outputs:
+      sha: ${{ steps.generate_tag.outputs.sha }}
+      registry: ${{ steps.login_ecr.outputs.registry }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate image tag (short SHA)
+        id: generate_tag
+        run: |
+          SHA=$(echo $GITHUB_SHA | head -c7)
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v5.1.0
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to AWS ECR
+        id: login_ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build image for Trivy vulnerability scan
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: |
+            ${{ steps.login_ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:testing
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          image-ref: ${{ steps.login_ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:testing
+          format: table
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: "CRITICAL,HIGH"
+          exit-code: "1"
+
+      - name: Build and push image to DockerHub and ECR
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ vars.DOCKERHUB_REPOSITORY }}:${{ steps.generate_tag.outputs.sha }}
+            ${{ steps.login_ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ steps.generate_tag.outputs.sha }}
+
+      - name: Verify image exists in ECR
+        run: |
+          aws ecr describe-images \
+            --repository-name "${{ vars.ECR_REPOSITORY }}" \
+            --image-ids imageTag="${{ steps.generate_tag.outputs.sha }}" \
+            --region "${{ vars.AWS_REGION }}" >/dev/null
+          echo "Image tag ${{ steps.generate_tag.outputs.sha }} found in ECR."
+
+  deploy-ecs:
+    name: Deploy Amazon ECS Service 🚀
+    runs-on: ubuntu-latest
+    needs: build-and-publish
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Render task definition
+        id: render-task-definition
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: .aws/task-definition.json
+          container-name: ${{ vars.ECS_CONTAINER_NAME }}
+          image: ${{ needs.build-and-publish.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ needs.build-and-publish.outputs.sha }}
+
+      - name: Deploy Amazon ECS
+        id: deploy-amazon-ecs
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render-task-definition.outputs.task-definition }}
+          service: ${{ vars.ECS_SERVICE_NAME }}
+          cluster: ${{ vars.ECS_CLUSTER_NAME }}
+#          wait-for-service-stability: true
+
+      - name: Deploy Check
+        run: |
+          echo "Deployment finished successfully. ✅"
+          echo "Cluster: ${{ vars.ECS_CLUSTER_NAME }}"
+          echo "Service: ${{ vars.ECS_SERVICE_NAME }}"
+          echo "Image tag: ${{ needs.build-and-publish.outputs.sha }}"
+
+#  deploy-app-runner:
+#    name: Deploy to App Runner
+#    runs-on: ubuntu-latest
+#    needs: push-ecr
+#    steps:
+#      - name: Deploy to App Runner
+#        uses: awslabs/amazon-app-runner-deploy@main
+#        with:
+#          image: "${{ needs.push-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ needs.build.outputs.sha }}"
+#          service: ${{ vars.AWS_APP_RUNNER_SERVICE }}
+#          region: ${{ vars.AWS_REGION }}
+#          cpu: 1
+#          memory: 2
+#          port: 3333
+#          access-role-arn: ${{ secrets.AWS_APP_RUNNER_ROLE_ARN }}
+#          wait-for-service-stability-seconds: 360
+#
+#      - name: App Runner Check
+#        run: echo "App Runner is running..."
