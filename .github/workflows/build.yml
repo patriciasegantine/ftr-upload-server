@@ -1,107 +1,76 @@
-name: Build and Push Image
+name: Test & Build (PR)
 
 on:
-  push:
+  pull_request:
     branches:
+      - develop
       - main
+    types:
+      - opened
+      - reopened
+      - labeled
+      - unlabeled
+      - synchronize
 
 jobs:
-  # ============================
-  # BUILD & PUSH TO AWS ECR
-  # ============================
-  build-and-push:
-    name: Build & Push Docker Image to ECR
+  test:
+    name: Run tests 🧪
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:13
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: docker
+          POSTGRES_PASSWORD: docker
+          POSTGRES_DB: postgres-widget-db-test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
-      # Checkout project code
       - name: Checkout repository
-        id: checkout_repo
         uses: actions/checkout@v4
 
-      # Validate that repo name variable exists
-      - name: Check required ECR variables
-        id: check_ecr_var
-        run: |
-          if [ -z "${{ vars.ECR_REPOSITORY }}" ]; then
-            echo "ECR_REPOSITORY variable is not set."
-            exit 1
-          fi
-
-      # Configure AWS credentials to allow ECR access
-      - name: Configure AWS Credentials
-        id: configure_aws
-        uses: aws-actions/configure-aws-credentials@v5.1.0
+      - name: Configure Node.js
+        uses: actions/setup-node@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AWS_REGION }}
+          node-version: '22'
+          cache: "npm"
 
-      # Authenticate Docker with ECR
-      - name: Login to AWS ECR
-        id: login_ecr
-        uses: aws-actions/amazon-ecr-login@v2
+      - name: Install dependencies
+        run: npm ci
 
-      # Generate a short version of commit SHA for tagging images
-      - name: Generate image tag (short SHA)
-        id: generate_tag
-        run: |
-          SHA=$(echo $GITHUB_SHA | head -c7)
-          echo "sha=$SHA" >> $GITHUB_OUTPUT
+      - name: Run tests
+        run: npm run test
 
-      # Build test image for Trivy scanning
-      - name: Build image for Trivy vulnerability scan
-        id: build_trivy_image
-        uses: docker/build-push-action@v6
+      - name: Tests status
+        run: echo "Tests passed successfully ✅"
+
+  build:
+    name: Build application 📦
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure Node.js
+        uses: actions/setup-node@v4
         with:
-          context: .
-          load: true
-          tags: |
-            ${{ steps.login_ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:testing
+          node-version: '22'
+          cache: "npm"
 
-      # Run Trivy scan on the testing image
-      - name: Run Trivy vulnerability scanner
-        id: trivy_scan
-        uses: aquasecurity/trivy-action@v0.35.0
-        with:
-          image-ref: ${{ steps.login_ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:testing
-          format: table
-          ignore-unfixed: true
-          vuln-type: "os,library"
-          severity: "CRITICAL,HIGH"
+      - name: Install dependencies
+        run: npm ci
 
-        # Build and push final image to ECR
-      - name: Build and push final production image to ECR
-        id: build_and_push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ steps.login_ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ steps.generate_tag.outputs.sha }}
+      - name: Build application
+        run: npm run build
 
-      - name: Verify image exists in ECR
-        id: verify_ecr_image
-        run: |
-          aws ecr describe-images \
-            --repository-name "${{ vars.ECR_REPOSITORY }}" \
-            --image-ids imageTag="${{ steps.generate_tag.outputs.sha }}" \
-            --region "${{ vars.AWS_REGION }}" >/dev/null
-          echo "Image tag ${{ steps.generate_tag.outputs.sha }} found in ECR."
-
-      - name: Deploy to App Runner
-        id: deploy_app_runner
-        uses: awslabs/amazon-app-runner-deploy@main
-        with:
-          image: "${{ steps.login_ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ steps.generate_tag.outputs.sha }}"
-          service: ${{vars.AWS_APP_RUNNER_SERVICE}}
-          region: ${{ vars.AWS_REGION }}
-          cpu: 1
-          memory: 2
-          port: 3333
-          access-role-arn: ${{ secrets.AWS_APP_RUNNER_ROLE_ARN }}
-          wait-for-service-stability-seconds: 360
-
-      - name: App Runner Check
-        id: app_runner_check
-        run: echo "App Runner is running..." ${{steps.deploy_app_runner.outputs.service-url}}
+      - name: Build status
+        run: echo "Build completed successfully ✅"
