@@ -1,15 +1,15 @@
-import {env} from '@/env'
-import {uploadImageRoute} from '@/infra/http/routes/upload-image'
-import {fastifyCors} from '@fastify/cors'
-import {fastify} from 'fastify'
-import {hasZodFastifySchemaValidationErrors, serializerCompiler, validatorCompiler,} from 'fastify-type-provider-zod'
+import { env } from '@/env'
+import { uploadImageRoute } from '@/infra/http/routes/upload-image'
+import { fastifyCors } from '@fastify/cors'
+import { fastify } from 'fastify'
+import { hasZodFastifySchemaValidationErrors, serializerCompiler, validatorCompiler, } from 'fastify-type-provider-zod'
 import fastifyMultipart from "@fastify/multipart";
 import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUi from "@fastify/swagger-ui";
-import {transformSwaggerSchema} from "@/infra/http/transform-swagger-schema";
-import {getUploadsRoute} from "@/infra/http/routes/get-uploads";
-import {exportUploadsRoute} from "@/infra/http/routes/export-uploads";
-import {healthCheckRoute} from "@/infra/http/routes/heath-check";
+import { transformSwaggerSchema } from "@/infra/http/transform-swagger-schema";
+import { getUploadsRoute } from "@/infra/http/routes/get-uploads";
+import { exportUploadsRoute } from "@/infra/http/routes/export-uploads";
+import { healthCheckRoute } from "@/infra/http/routes/heath-check";
 
 const server = fastify()
 
@@ -23,8 +23,6 @@ server.setErrorHandler((error, request, reply) => {
             issues: error.validation,
         })
     }
-
-    // TODO: Implement integration with observability tools (Sentry/DataDog/Grafana/OTel)
 
     console.error(error)
 
