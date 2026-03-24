@@ -30,6 +30,7 @@
     "@types/node": "^22.10.2",
     "dotenv-cli": "^11.0.0",
     "drizzle-kit": "^0.31.6",
+    "esbuild": "^0.27.4",
     "tsup": "^8.5.1",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
