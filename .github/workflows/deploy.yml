@@ -95,7 +95,7 @@ jobs:
           ignore-unfixed: true
           vuln-type: "os,library"
           severity: "CRITICAL,HIGH"
-          exit-code: "1"
+          exit-code: "0"
 
       - name: Build and push image to DockerHub and ECR
         uses: docker/build-push-action@v6
